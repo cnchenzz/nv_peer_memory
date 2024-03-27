@@ -57,14 +57,15 @@ MODULE_VERSION(DRV_VERSION);
 #define peer_err(FMT, ARGS...) printk(KERN_ERR   DRV_NAME " %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS)
 
 static int enable_dbg = 0;
+
 #define peer_dbg(FMT, ARGS...)                                          \
         do {                                                            \
                 if (enable_dbg /*&& printk_ratelimit()*/)		\
                         printk(KERN_ERR DRV_NAME " DBG %s:%d " FMT, __FUNCTION__, __LINE__, ## ARGS); \
         } while(0)
 
-module_param(enable_dbg, int, 0000);
-MODULE_PARM_DESC(enable_dbg, "enable debug tracing");
+module_param(enable_dbg, int, 0000);     // 定义模块参数，用于启用调试追踪
+MODULE_PARM_DESC(enable_dbg, "enable debug tracing");  // 模块参数描述
 
 #ifndef NVIDIA_P2P_MAJOR_VERSION_MASK
 #define NVIDIA_P2P_MAJOR_VERSION_MASK   0xffff0000
@@ -111,30 +112,36 @@ MODULE_PARM_DESC(enable_dbg, "enable debug tracing");
 #define GPU_PAGE_MASK    (~GPU_PAGE_OFFSET)
 
 
-invalidate_peer_memory mem_invalidate_callback;
-static void *reg_handle = NULL;
-static void *reg_handle_nc = NULL;
+invalidate_peer_memory mem_invalidate_callback;  // 定义无效化对等内存的回调函数
+static void *reg_handle = NULL;  // 注册句柄
+static void *reg_handle_nc = NULL;  // 非缓存注册句柄
 
+// NVIDIA GPU内存上下文结构体
 struct nv_mem_context {
+	// NVIDIA对等内存页表
 	struct nvidia_p2p_page_table *page_table;
 #if NV_DMA_MAPPING
+	// NVIDIA对等DMA映射
 	struct nvidia_p2p_dma_mapping *dma_mapping;
 #endif
 #ifndef PEER_MEM_U64_CORE_CONTEXT
+	// 核心上下文
 	void *core_context;
 #else
+	
 	u64 core_context;
 #endif
-	u64 page_virt_start;
-	u64 page_virt_end;
-	size_t mapped_size;
-	unsigned long npages;
-	unsigned long page_size;
-	struct task_struct *callback_task;
-	int sg_allocated;
-	struct sg_table sg_head;
+	u64 page_virt_start;	// 虚拟页起始地址
+	u64 page_virt_end;	// 虚拟页结束地址
+	size_t mapped_size;	// 映射大小
+	unsigned long npages;	// 页数
+	unsigned long page_size;	 // 页大小
+	struct task_struct *callback_task; 	// 回调任务
+	int sg_allocated;	// 分散/聚集列表分配标志
+	struct sg_table sg_head;	// 分散/聚集列表头部
 };
 
+// 判断是否支持持久页面
 static inline int nv_support_persistent_pages(void)
 {
 #ifdef NVIDIA_P2P_CAP_PERSISTENT_PAGES
@@ -144,58 +151,69 @@ static inline int nv_support_persistent_pages(void)
 #endif
 }
 
+// 释放对等内存回调函数
 static void nv_get_p2p_free_callback(void *data)
+/*
+ * 总体功能：对等内存释放回调函数，用于释放NVIDIA GPU内存插件中使用的对等内存资源。
+ * 通过该函数，可以安全地释放之前申请的对等内存资源，包括页表和DMA映射。
+ */
 {
 	int ret = 0;
 	struct nv_mem_context *nv_mem_context = (struct nv_mem_context *)data;
-	struct nvidia_p2p_page_table *page_table = NULL;
+	struct nvidia_p2p_page_table *page_table = NULL; // 初始化页表指针为空
 #if NV_DMA_MAPPING
-	struct nvidia_p2p_dma_mapping *dma_mapping = NULL;
+	struct nvidia_p2p_dma_mapping *dma_mapping = NULL; // 初始化DMA映射指针为空
 #endif
 
-	__module_get(THIS_MODULE);
-	if (!nv_mem_context) {
-		peer_err("nv_get_p2p_free_callback -- invalid nv_mem_context\n");
-		goto out;
+	__module_get(THIS_MODULE); // 增加模块引用计数，防止模块被卸载
+	if (!nv_mem_context) { // 如果nv_mem_context为空指针
+		peer_err("nv_get_p2p_free_callback -- invalid nv_mem_context\n"); // 打印错误信息
+		goto out; // 跳转到结束标签，执行清理工作
 	}
 
-	if (!nv_mem_context->page_table) {
-		peer_err("nv_get_p2p_free_callback -- invalid page_table\n");
-		goto out;
+	if (!nv_mem_context->page_table) { // 如果页表指针为空
+		peer_err("nv_get_p2p_free_callback -- invalid page_table\n"); // 打印错误信息
+		goto out; // 跳转到结束标签，执行清理工作
 	}
 
 	/* Save page_table locally to prevent it being freed as part of nv_mem_release
 	    in case it's called internally by that callback.
 	*/
+	// 保存页表以防止在回调期间释放
 	page_table = nv_mem_context->page_table;
 
 #if NV_DMA_MAPPING
-	if (!nv_mem_context->dma_mapping) {
+	if (!nv_mem_context->dma_mapping) { // 如果DMA映射指针为空
 		peer_err("nv_get_p2p_free_callback -- invalid dma_mapping\n");
 		goto out;
 	}
+	// 设置DMA映射指针
 	dma_mapping = nv_mem_context->dma_mapping;
 #endif
 
 	/* For now don't set nv_mem_context->page_table to NULL, 
 	  * confirmed by NVIDIA that inflight put_pages with valid pointer will fail gracefully.
 	*/
+	// 打印调试信息
         peer_dbg("calling mem_invalidate_callback\n");
+	// 设置回调任务为当前任务
 	nv_mem_context->callback_task = current;
+	// 调用无效化对等内存的回调函数
 	(*mem_invalidate_callback) (reg_handle, nv_mem_context->core_context);
+	// 清空回调任务
 	nv_mem_context->callback_task = NULL;
 
 #if NV_DMA_MAPPING
-	ret = nvidia_p2p_free_dma_mapping(dma_mapping); 
+	ret = nvidia_p2p_free_dma_mapping(dma_mapping);  // 释放DMA映射
 	if (ret)
                 peer_err("nv_get_p2p_free_callback -- error %d while calling nvidia_p2p_free_dma_mapping()\n", ret);
 #endif
-	ret = nvidia_p2p_free_page_table(page_table);
+	ret = nvidia_p2p_free_page_table(page_table);  // 释放页表
 	if (ret)
 		peer_err("nv_get_p2p_free_callback -- error %d while calling nvidia_p2p_free_page_table()\n", ret);
 
 out:
-	module_put(THIS_MODULE);
+	module_put(THIS_MODULE);  // 释放模块引用计数，允许模块被卸载
 	return;
 
 }
