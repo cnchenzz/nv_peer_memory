@@ -1,5 +1,8 @@
 # nv_peer_mem
 #
+# 用于在系统启动时加载和停止 nv_peer_mem 内核模块，并且在 openibd 服务已启动后才执行。
+# Upstart 在运行级别为 2、3、4 或 5 时停止执行任务。这意味着当系统处于这些运行级别时，会尝试停止 nv_peer_mem 模块
+
 
 description	"load nv_peer_mem module"
 
