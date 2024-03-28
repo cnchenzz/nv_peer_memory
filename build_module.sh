@@ -3,7 +3,7 @@
 #
 # Author: Feras Daoud <ferasda@mellanox.com>
 #
-
+# 这段脚本的主要功能是根据不同系统环境构建软件包（Debian 包或 RPM 包），并提供相应的安装说明
 ex()
 {
     if ! eval "$@"; then
