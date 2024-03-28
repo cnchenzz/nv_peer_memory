@@ -4,6 +4,9 @@
 #
 # This Software is licensed under one of the following licenses:
 #
+
+# 在构建一个 nv_peer_mem 的模块时，获取其依赖的 NVIDIA 驱动模块的符号版本信息，
+# 以确保 nv_peer_mem 模块能够正确地链接和使用 NVIDIA 驱动模块中的符号。
 # 1) under the terms of the "Common Public License 1.0" a copy of which is
 #    available from the Open Source Initiative, see
 #    http://www.opensource.org/licenses/cpl.php.
