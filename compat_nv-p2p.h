@@ -8,9 +8,10 @@
  * _NVRM_COPYRIGHT_END_
  */
 
+
 #ifndef _NV_P2P_H_
 #define _NV_P2P_H_
-
+# 枚举定义了 NVIDIA GPU 的架构类型，包括 Tesla 和 Fermi。
 enum {
     NVIDIA_P2P_ARCHITECTURE_TESLA = 0,
     NVIDIA_P2P_ARCHITECTURE_FERMI,
@@ -18,14 +19,14 @@ enum {
 };
 
 #define NVIDIA_P2P_PARAMS_VERSION   0x00010001
-
+# 定义了 P2P 参数结构体的版本号
 enum {
     NVIDIA_P2P_PARAMS_ADDRESS_INDEX_GPU = 0,
     NVIDIA_P2P_PARAMS_ADDRESS_INDEX_THIRD_PARTY_DEVICE,
     NVIDIA_P2P_PARAMS_ADDRESS_INDEX_MAX = \
         NVIDIA_P2P_PARAMS_ADDRESS_INDEX_THIRD_PARTY_DEVICE
 };
-
+# 定义了 P2P 参数的结构体，包括版本号、架构类型和一组用于通信的地址
 typedef
 struct nvidia_p2p_params {
     uint32_t version;
@@ -65,6 +66,7 @@ struct nvidia_p2p_params {
  *   -EBUSY       if the mapping has already been initialized.
  *   -EIO         if an unknown error occurred.
  */
+# 初始化一个第三方 P2P 映射
 int nvidia_p2p_init_mapping(uint64_t p2p_token,
         struct nvidia_p2p_params *params,
         void (*destroy_callback)(void *data),
@@ -83,14 +85,15 @@ int nvidia_p2p_init_mapping(uint64_t p2p_token,
  *   -ENOTSUPP    if the requested configuration is not supported.
  *   -ENOMEM      if the driver failed to allocate memory.
  */
+# 销毁一个之前初始化的第三方 P2P 映射。
 int nvidia_p2p_destroy_mapping(uint64_t p2p_token);
-
+# 定义了页面的大小
 enum {
     NVIDIA_P2P_PAGE_SIZE_4KB = 0,
     NVIDIA_P2P_PAGE_SIZE_64KB,
     NVIDIA_P2P_PAGE_SIZE_128KB
 };
-
+# 定义了 P2P 页面的结构体，包括物理地址和一组用于请求的寄存器
 typedef
 struct nvidia_p2p_page {
     uint64_t physical_address;
@@ -105,7 +108,9 @@ struct nvidia_p2p_page {
 } nvidia_p2p_page_t;
 
 #define NVIDIA_P2P_PAGE_TABLE_VERSION   0x00010001
+# 定义了 P2P 页面表的版本号
 
+# 定义了 P2P 页面表的结构体，包括版本号、页面大小、页面数组和条目数
 typedef
 struct nvidia_p2p_page_table {
     uint32_t version;
@@ -145,6 +150,7 @@ struct nvidia_p2p_page_table {
  *     insufficient resources were available to complete the operation.
  *   -EIO         if an unknown error occurred.
  */
+# 使一系列 GPU 虚拟内存下的页面对第三方设备可访问
 int nvidia_p2p_get_pages(uint64_t p2p_token, uint32_t va_space,
         uint64_t virtual_address,
         uint64_t length,
@@ -171,6 +177,7 @@ int nvidia_p2p_get_pages(uint64_t p2p_token, uint32_t va_space,
  *   -EINVAL      if an invalid argument was supplied.
  *   -EIO         if an unknown error occurred.
  */
+# 释放之前使第三方设备可访问的一组页面
 int nvidia_p2p_put_pages(uint64_t p2p_token, uint32_t va_space,
         uint64_t virtual_address,
         struct nvidia_p2p_page_table *page_table);
@@ -186,6 +193,7 @@ int nvidia_p2p_put_pages(uint64_t p2p_token, uint32_t va_space,
  *    0           upon successful completion.
  *   -EINVAL      if an invalid argument was supplied.
  */
+# 释放一个 P2P 页面表
 int nvidia_p2p_free_page_table(struct nvidia_p2p_page_table *page_table);
 
 #endif /* _NV_P2P_H_ */
