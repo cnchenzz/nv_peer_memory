@@ -7,6 +7,17 @@
 # config: /etc/infiniband/nv_peer_mem.conf
 CONFIG=${CONFIG:-"/etc/infiniband/nv_peer_mem.conf"}
 
+
+# 这个脚本是一个用于管理nv_peer_mem 内核模块的 Bash 脚本，以下是脚本的主要功能：
+# 从 /etc/infiniband/nv_peer_mem.conf 文件中读取配置
+# 检查是否配置了模块自动启动，如果没有，则退出。
+# 提供了四种操作：start、stop、restart 和 status。
+# start 操作加载所需的模块（ib_core 和 nvidia），然后加载 nv_peer_mem 模块。
+# stop 操作卸载 nv_peer_mem 模块（如果已加载）。
+# restart 操作先执行 stop，然后执行 start。
+# status 操作检查 nv_peer_mem 模块是否已加载。
+
+
 modname=nv_peer_mem
 reqmods="ib_core nvidia"
 
